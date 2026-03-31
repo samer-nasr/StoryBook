@@ -17,8 +17,29 @@ class AIImageService
      */
     public function generateCharacterImage(string $photoPath, string $childName): string
     {
-        $prompt = "A cute illustrated baby character in children's storybook style based on this child photo, soft colors, friendly face, cartoon illustration suitable for a kids book. The character represents a child named {$childName}.";
+        // $prompt = "A cute illustrated baby character in children's storybook style based on this child photo, soft colors, friendly face, cartoon illustration suitable for a kids book. The character represents a child named {$childName}.";
 
+        $prompt = "Create a children's storybook illustration of this child.
+
+            STRICT REQUIREMENTS:
+            - Preserve the exact facial features (eyes, nose, mouth, face shape)
+            - Keep the child's identity clearly recognizable
+            - Do NOT change age or facial proportions
+            - Keep hairstyle and hair color accurate
+            - Maintain natural expression from the original photo
+
+            STYLE:
+            - Soft children's book illustration
+            - Warm colors, watercolor style
+            - Clean, simple cartoon rendering
+
+            OUTPUT:
+            - Full body character
+            - Neutral standing pose
+            - Centered composition
+            - Plain or soft background
+
+            This character will be reused across multiple story pages, so consistency is critical.";
         $response = Ai::image($prompt, [new LocalImage($photoPath)]);
         $generatedImage = $response->firstImage();
 

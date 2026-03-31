@@ -35,8 +35,27 @@ class StoryController extends Controller
         $fullTempPhotoPath = Storage::disk('local')->path($tempPhotoPath);
 
         $pdfPath = base_path('Design sans titre.pdf');
-        $prompt = "Replace the baby character in this children's storybook illustration with the provided child character while keeping the original art style, colors, and background intact.";
+        // $prompt = "Replace the baby character in this children's storybook illustration with the provided child character while keeping the original art style, colors, and background intact.";
 
+        $prompt = "Replace ONLY the baby character in this image with the provided child character.
+                    STRICT RULES:
+                    - Use the provided character as the ONLY reference for the face and identity
+                    - Preserve the exact same facial features, hairstyle, and proportions
+                    - Do NOT redesign or reinterpret the character
+                    - Keep identity 100% consistent with the reference image
+
+                    SCENE RULES:
+                    - Do NOT change the background
+                    - Do NOT change colors, lighting, or style
+                    - Do NOT modify any other objects or elements
+                    - Keep the original illustration style exactly the same
+
+                    POSE:
+                    - Match the pose and position of the original baby character
+                    - Adapt the provided character to fit the same pose naturally
+
+                    IMPORTANT:
+                    Only replace the baby character. Everything else must remain unchanged.";
         // Dispatch the job
         GeneratePersonalizedStory::dispatch(
             $fullTempPhotoPath, 
