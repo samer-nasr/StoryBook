@@ -14,3 +14,4 @@ Route::post('/chat', [ChatbotController::class, 'chat']);
 // Story Generator Routes
 Route::get('/story/create', [StoryController::class, 'create'])->name('story.create');
 Route::post('/story/generate', [StoryController::class, 'generate'])->name('story.generate');
+Route::get('/story/{id}/status', [StoryController::class, 'status'])->name('story.status');
