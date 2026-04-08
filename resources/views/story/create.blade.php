@@ -63,6 +63,43 @@
                 @enderror
             </div>
 
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <label class="block text-sm font-medium text-gray-700">Select Story Template</label>
+                    <span class="text-xs text-gray-500">Pick the magical adventure</span>
+                </div>
+                
+                <input type="hidden" name="template_id" id="template_id">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="template-grid">
+                    @foreach($templates as $index => $template)
+                    <div class="template-card cursor-pointer rounded-2xl bg-white shadow-sm hover:shadow-md transition-all p-4 border border-gray-200 group" data-id="{{ $template->id }}">
+                        <div class="aspect-[3/4] bg-gray-50 rounded-xl mb-4 overflow-hidden relative border border-gray-100">
+                            <!-- pointer-events-none disables iframe interactions so clicking the card works -->
+                            <iframe src="{{ asset('storage/' . $template->file_path) }}#toolbar=0&navpanes=0&scrollbar=0" class="w-full h-full border-0 pointer-events-none" frameborder="0" scrolling="no"></iframe>
+                            <div class="absolute inset-0 bg-gray-900 bg-opacity-0 group-hover:bg-opacity-5 transition-colors"></div>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-base leading-tight">{{ $template->name }}</h3>
+                        <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ $template->description }}</p>
+                        
+                        <!-- Checkmark Icon (visible when selected) -->
+                        <div class="absolute top-6 right-6 bg-indigo-500 text-white rounded-full p-1 opacity-0 transform scale-75 transition-all duration-200 checkmark">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                <p id="template-error" class="text-red-500 text-sm hidden font-medium mt-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Please select a template to continue.
+                </p>
+
+                @error('template_id')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div class="pt-4">
                 <button type="submit" class="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
                     Generate Magic Story
@@ -96,5 +133,69 @@
         document.getElementById('upload-content').classList.remove('opacity-0');
         document.getElementById('image-preview').src = "#";
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const templateCards = document.querySelectorAll('.template-card');
+        const hiddenInput = document.getElementById('template_id');
+        const form = document.querySelector('form');
+        const errorText = document.getElementById('template-error');
+
+        function selectCard(card) {
+            // Remove highlight from all
+            templateCards.forEach(c => {
+                c.classList.remove('ring-2', 'ring-indigo-500', 'border-transparent');
+                c.classList.add('border-gray-200');
+                const checkmark = c.querySelector('.checkmark');
+                if (checkmark) {
+                    checkmark.classList.remove('opacity-100', 'scale-100');
+                    checkmark.classList.add('opacity-0', 'scale-75');
+                }
+            });
+
+            // Add highlight to selected
+            card.classList.add('ring-2', 'ring-indigo-500', 'border-transparent');
+            card.classList.remove('border-gray-200');
+            
+            const selectedCheckmark = card.querySelector('.checkmark');
+            if (selectedCheckmark) {
+                selectedCheckmark.classList.remove('opacity-0', 'scale-75');
+                selectedCheckmark.classList.add('opacity-100', 'scale-100');
+            }
+
+            // Update hidden input
+            hiddenInput.value = card.dataset.id;
+            
+            // Hide error if visible
+            errorText.classList.add('hidden');
+        }
+
+        // Add click events to all cards
+        templateCards.forEach(card => {
+            card.addEventListener('click', () => selectCard(card));
+        });
+
+        // Auto-select first template on load if exists
+        if (templateCards.length > 0) {
+            selectCard(templateCards[0]);
+        }
+
+        // Intercept form submission for validation
+        form.addEventListener('submit', function(e) {
+            if (!hiddenInput.value) {
+                e.preventDefault(); // Prevent form submission
+                
+                // Show error message elegantly
+                errorText.classList.remove('hidden');
+                
+                // Scroll specifically to the template grid
+                document.getElementById('template-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Add a quick shake effect to grab attention
+                const container = document.getElementById('template-grid');
+                container.classList.add('animate-pulse');
+                setTimeout(() => container.classList.remove('animate-pulse'), 1000);
+            }
+        });
+    });
 </script>
 @endsection

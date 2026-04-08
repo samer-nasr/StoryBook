@@ -7,28 +7,34 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\StoryGeneration;
 use App\Jobs\PrepareStoryJob;
 
+use App\Models\StoryTemplate;
+
 class StoryController extends Controller
 {
     public function create()
     {
-        return view('story.create');
+        $templates = StoryTemplate::all();
+        return view('story.create', compact('templates'));
     }
 
     public function generate(Request $request)
     {
         $validated = $request->validate([
+            'template_id' => 'required|exists:story_templates,id',
             'name' => 'required|string|max:255',
             'age' => 'required|integer|min:1|max:12',
             'photo' => 'required|image|max:10240', // Max 10MB
         ]);
+
+        $template = StoryTemplate::findOrFail($request->template_id);
 
         // Store the uploaded photo temporarily
         $photoName = 'child_' . time() . '.' . $request->file('photo')->getClientOriginalExtension();
         $tempPhotoPath = $request->file('photo')->storeAs('temp', $photoName, 'local');
         $fullTempPhotoPath = Storage::disk('local')->path($tempPhotoPath);
 
-        // $pdfPath = base_path('Design sans titre.pdf');
-        $pdfPath = base_path('t1.pdf');
+        // Load correct PDF path from selected template
+        $pdfPath = storage_path('app/public/' . $template->file_path);
 
         // $prompt = "Edit this storybook page image by REPLACING the main baby/child character with the character from the second reference image.
 
@@ -94,6 +100,7 @@ class StoryController extends Controller
 
         // Create a StoryGeneration record to track progress
         $story = StoryGeneration::create([
+            'template_id' => $template->id,
             'name' => $validated['name'],
             'status' => 'pending',
             'total_pages' => 0,

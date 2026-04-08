@@ -68,6 +68,12 @@ class PrepareStoryJob implements ShouldQueue
         $story = StoryGeneration::findOrFail($this->storyId);
 
         try {
+            if (!$story->template) {
+                throw new \Exception('Template not found for this story.');
+            }
+
+            $templatePath = storage_path('app/public/' . $story->template->file_path);
+
             // 1. Update status to processing
             $story->update(['status' => 'processing']);
             Log::info("[Story #{$this->storyId}] PrepareStoryJob started for '{$this->childName}' (attempt {$this->attempts()}).");
@@ -84,7 +90,7 @@ class PrepareStoryJob implements ShouldQueue
 
             // 3. Extract PDF pages
             Log::info("[Story #{$this->storyId}] Extracting pages from PDF...");
-            $pageImages = $storyService->extractPages($this->pdfPath, $this->storyId);
+            $pageImages = $storyService->extractPages($templatePath, $this->storyId);
             $totalPages = count($pageImages);
             $story->update(['total_pages' => $totalPages]);
             Log::info("[Story #{$this->storyId}] Extracted {$totalPages} pages.");
