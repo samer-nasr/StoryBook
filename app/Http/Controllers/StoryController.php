@@ -111,29 +111,46 @@ class StoryController extends Controller
             prompt: $prompt
         );
 
-        return response()->json([
-            'message' => 'Your personalized story is being generated! Track progress using the story ID.',
-            'story_id' => $story->id,
-            'status_url' => route('story.status', $story->id),
-        ]);
+        // Redirect to the processing page instead of JSON API response
+        return redirect()->route('story.processing', $story->id);
+    }
+
+    public function examples()
+    {
+        $files = Storage::disk('public')->files('stories'); // Adjusted to match where files are actually saved
+        
+        // Strip the folder path to just pass filenames for the examples gallery
+        $files = array_map('basename', $files);
+
+        return view('examples', compact('files'));
+    }
+
+    public function processing(StoryGeneration $story)
+    {
+        return view('story.processing', compact('story'));
+    }
+
+    public function show(StoryGeneration $story)
+    {
+        return view('story.show', compact('story'));
     }
 
     /**
      * Get the current progress/status of a story generation.
      */
-    public function status(int $id)
+    public function status(int $story)
     {
-        $story = StoryGeneration::findOrFail($id);
+        $storyRecord = StoryGeneration::findOrFail($story);
 
         return response()->json([
-            'id' => $story->id,
-            'name' => $story->name,
-            'status' => $story->status,
-            'total_pages' => $story->total_pages,
-            'processed_pages' => $story->processed_pages,
-            'output_path' => $story->output_path,
-            'progress' => $story->total_pages > 0
-                ? round(($story->processed_pages / $story->total_pages) * 100, 1)
+            'id' => $storyRecord->id,
+            'name' => $storyRecord->name,
+            'status' => $storyRecord->status,
+            'total_pages' => $storyRecord->total_pages,
+            'processed_pages' => $storyRecord->processed_pages,
+            'output_path' => $storyRecord->output_path,
+            'progress' => $storyRecord->total_pages > 0
+                ? round(($storyRecord->processed_pages / $storyRecord->total_pages) * 100, 1)
                 : 0,
         ]);
     }

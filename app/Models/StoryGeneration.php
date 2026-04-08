@@ -22,7 +22,13 @@ class StoryGeneration extends Model
         'character_image_path',
         'pdf_path',
         'prompt',
+        'template_id',
     ];
+
+    public function template()
+    {
+        return $this->belongsTo(StoryTemplate::class, 'template_id');
+    }
 
     /**
      * Atomically increment processed_pages counter.
