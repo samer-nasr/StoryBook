@@ -37,28 +37,49 @@ class FinalizeStoryJob implements ShouldQueue
         try {
             $story = StoryGeneration::findOrFail($this->storyId);
 
-            Log::info("[Story #{$this->storyId}] FinalizeStoryJob started. Rebuilding PDF...");
+            Log::info("[Story #{$this->storyId}] FinalizeStoryJob started. Collecting generated pages...");
 
             // 1. Collect all generated page images (sorted by index)
             $generatedPages = $storyService->collectGeneratedPages($this->storyId, $story->total_pages);
+            $pagesFound = count($generatedPages);
 
-            if (count($generatedPages) !== $story->total_pages) {
-                Log::warning("[Story #{$this->storyId}] Expected {$story->total_pages} pages but found " . count($generatedPages) . ". Proceeding with available pages.");
+            Log::info("[Story #{$this->storyId}] Found {$pagesFound} of {$story->total_pages} generated pages.");
+
+            // 2. Handle based on how many pages succeeded
+            if ($pagesFound === 0) {
+                // Total failure — no pages were processed
+                Log::error("[Story #{$this->storyId}] No pages were generated. Marking as failed.");
+                $story->update(['status' => 'failed']);
+                $storyService->cleanupTempFiles($this->storyId, $story->total_pages);
+                return;
             }
 
-            // 2. Rebuild the final PDF
+            // 3. Rebuild the final PDF with whatever pages we have
+            Log::info("[Story #{$this->storyId}] Rebuilding PDF with {$pagesFound} pages...");
             $finalPdfPath = $storyService->rebuildPdf($generatedPages, $this->childName);
 
-            // 3. Update story record with output path and mark as completed
+            // 4. Determine final status
+            $status = ($pagesFound === $story->total_pages) ? 'completed' : 'completed_partial';
+
             $story->update([
                 'output_path' => $finalPdfPath,
-                'status' => 'completed',
+                'status' => $status,
             ]);
 
-            Log::info("[Story #{$this->storyId}] Story generation completed! PDF saved to: {$finalPdfPath}");
+            if ($status === 'completed_partial') {
+                Log::warning("[Story #{$this->storyId}] Story partially completed ({$pagesFound}/{$story->total_pages} pages). PDF saved to: {$finalPdfPath}");
+            } else {
+                Log::info("[Story #{$this->storyId}] Story generation completed! PDF saved to: {$finalPdfPath}");
+            }
 
-            // 4. Clean up temporary files (extracted PDF pages + generated page images)
-            $storyService->cleanupTempFiles($this->storyId, $story->total_pages);
+            // 5. Delay cleanup to allow any in-flight retrying jobs to finish first
+            //    This prevents "file not found" errors on jobs still retrying
+            $storyId = $this->storyId;
+            $totalPages = $story->total_pages;
+            dispatch(function () use ($storyId, $totalPages, $storyService) {
+                $storyService->cleanupTempFiles($storyId, $totalPages);
+                Log::info("[Story #{$storyId}] Delayed cleanup completed.");
+            })->delay(now()->addMinutes(10));
 
         } catch (Throwable $e) {
             Log::error("[Story #{$this->storyId}] FinalizeStoryJob failed: " . $e->getMessage());

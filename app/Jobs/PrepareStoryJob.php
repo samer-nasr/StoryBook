@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\Middleware\ThrottlesExceptions;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 use App\Models\StoryGeneration;
@@ -20,11 +21,32 @@ class PrepareStoryJob implements ShouldQueue
 
     public $timeout = 1200; // 20 minutes for character generation + PDF extraction
 
+    /**
+     * Number of times the job may be attempted.
+     * Allows retries on safety filter or rate limit errors.
+     */
+    public $tries = 3;
+
+    /**
+     * Exponential backoff intervals (in seconds) between retries.
+     */
+    public $backoff = [30, 60, 120];
+
     protected int $storyId;
     protected string $photoPath;
     protected string $childName;
     protected string $pdfPath;
     protected string $prompt;
+
+    /**
+     * Middleware: throttle exceptions to handle transient errors.
+     */
+    public function middleware(): array
+    {
+        return [
+            (new ThrottlesExceptions(2, 60))->backoff(1),
+        ];
+    }
 
     /**
      * Create a new job instance.
@@ -48,7 +70,7 @@ class PrepareStoryJob implements ShouldQueue
         try {
             // 1. Update status to processing
             $story->update(['status' => 'processing']);
-            Log::info("[Story #{$this->storyId}] PrepareStoryJob started for '{$this->childName}'.");
+            Log::info("[Story #{$this->storyId}] PrepareStoryJob started for '{$this->childName}' (attempt {$this->attempts()}).");
 
             // 2. Generate the character image
             Log::info("[Story #{$this->storyId}] Generating character image...");
@@ -85,14 +107,16 @@ class PrepareStoryJob implements ShouldQueue
             $childName = $this->childName;
 
             $batch = Bus::batch($jobs)
-                ->then(function () use ($storyId, $childName) {
-                    Log::info("[Story #{$storyId}] All pages processed successfully. Dispatching FinalizeStoryJob...");
-                    FinalizeStoryJob::dispatch($storyId, $childName);
+                ->then(function () use ($storyId) {
+                    Log::info("[Story #{$storyId}] Batch completed.");
                 })
                 ->catch(function ($batch, Throwable $e) use ($storyId) {
-                    Log::error("[Story #{$storyId}] Batch failed: " . $e->getMessage());
-                    StoryGeneration::where('id', $storyId)->update(['status' => 'failed']);
+                    Log::warning("[Story #{$storyId}] Some pages failed in batch: " . $e->getMessage());
                 })
+                ->finally(function () use ($storyId) {
+                    Log::info("[Story #{$storyId}] Batch finished (all jobs attempted).");
+                })
+                ->allowFailures()  // Don't cancel remaining jobs when one fails
                 ->name("Story #{$storyId} - Page Processing")
                 ->dispatch();
 

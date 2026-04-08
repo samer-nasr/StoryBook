@@ -29,25 +29,33 @@ class StoryController extends Controller
 
         $pdfPath = base_path('Design sans titre.pdf');
 
-        $prompt = "Replace ONLY the baby character in this image with the provided child character.
-                    STRICT RULES:
-                    - Use the provided character as the ONLY reference for the face and identity
-                    - Preserve the exact same facial features, hairstyle, and proportions
+        $prompt = "Edit this storybook page image by REPLACING the main baby/child character with the character from the second reference image.
+
+                    CRITICAL - REPLACEMENT, NOT ADDITION:
+                    - REMOVE the original baby/child character completely from the scene
+                    - Place the new character (from the reference image) in the EXACT same position
+                    - The final image must contain ONLY ONE child character — the new one
+                    - Do NOT keep both the old and new characters — the old one must be gone
+                    - If there are animals, toys, or other non-human characters, KEEP them unchanged
+
+                    CHARACTER IDENTITY:
+                    - The replacement character must match the reference image exactly
+                    - Preserve the exact facial features, hairstyle, and proportions from the reference
                     - Do NOT redesign or reinterpret the character
-                    - Keep identity 100% consistent with the reference image
 
-                    SCENE RULES:
-                    - Do NOT change the background
-                    - Do NOT change colors, lighting, or style
-                    - Do NOT modify any other objects or elements
+                    SCENE PRESERVATION:
+                    - Keep the background, colors, lighting, and art style identical
+                    - Keep all animals, objects, and decorations unchanged
                     - Keep the original illustration style exactly the same
+                    - Only the baby/child character should change — nothing else
 
-                    POSE:
-                    - Match the pose and position of the original baby character
-                    - Adapt the provided character to fit the same pose naturally
+                    POSE AND POSITION:
+                    - The new character should adopt the same pose as the original baby character
+                    - Match the same position, angle, and scale in the scene
 
-                    IMPORTANT:
-                    Only replace the baby character. Everything else must remain unchanged.";
+                    FINAL CHECK:
+                    - Count the human characters: there should be exactly ONE child in the output
+                    - That child must be the one from the reference image, not the original";
 
         // Create a StoryGeneration record to track progress
         $story = StoryGeneration::create([

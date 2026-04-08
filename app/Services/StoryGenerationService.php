@@ -60,17 +60,41 @@ class StoryGenerationService
         $timestamp = time();
         $finalPdfPath = $outputDirectory . "/story_{$childName}_{$timestamp}.pdf";
 
-        $pdf = new \FPDF();
+        // A4 Portrait dimensions in mm
+        $pageWidth = 210;
+        $pageHeight = 297;
+
+        $pdf = new \FPDF('P', 'mm', 'A4');
+        $pdf->SetAutoPageBreak(false);
 
         foreach ($imagePaths as $imagePath) {
-            // Get image dimensions to set the PDF page size accordingly
-            $size = getimagesize($imagePath);
-            $width = $size[0] * 0.264583; // Convert pixels to mm (approx 96 DPI)
-            $height = $size[1] * 0.264583;
+            $pdf->AddPage('P', 'A4');
 
-            // Add a page with the image's dimensions
-            $pdf->AddPage($width > $height ? 'L' : 'P', [$width, $height]);
-            $pdf->Image($imagePath, 0, 0, $width, $height);
+            // Get image pixel dimensions
+            $size = getimagesize($imagePath);
+            $imgW = $size[0];
+            $imgH = $size[1];
+
+            // Calculate aspect ratios
+            $imgRatio = $imgW / $imgH;
+            $pageRatio = $pageWidth / $pageHeight;
+
+            // COVER: scale so the image completely fills the page without white borders
+            if ($imgRatio > $pageRatio) {
+                // Image is wider than page ratio → scale by height to fill the page, excess width gets cropped
+                $finalH = $pageHeight;
+                $finalW = $pageHeight * $imgRatio;
+            } else {
+                // Image is taller than page ratio → scale by width to fill the page, excess height gets cropped
+                $finalW = $pageWidth;
+                $finalH = $pageWidth / $imgRatio;
+            }
+
+            // Center the image on the page
+            $x = ($pageWidth - $finalW) / 2;
+            $y = ($pageHeight - $finalH) / 2;
+
+            $pdf->Image($imagePath, $x, $y, $finalW, $finalH);
         }
 
         $pdf->Output('F', $finalPdfPath);
@@ -93,13 +117,16 @@ class StoryGenerationService
         for ($i = 1; $i <= $totalPages; $i++) {
             $path = $directory . "/story_{$storyId}_page_{$i}.png";
             if (file_exists($path)) {
-                $pages[] = $path;
+                $pages[$i] = $path;  // Key by page index for guaranteed ordering
             } else {
                 Log::warning("[Story #{$storyId}] Missing generated page {$i} at: {$path}");
             }
         }
 
-        return $pages;
+        // Sort by key (page index) to guarantee correct order
+        ksort($pages);
+
+        return array_values($pages);
     }
 
     /**
@@ -123,7 +150,7 @@ class StoryGenerationService
             // Clean generated pages (after PDF is rebuilt)
             $generatedPage = $generatedPagesDir . "/story_{$storyId}_page_{$i}.png";
             if (file_exists($generatedPage)) {
-                @unlink($generatedPage);
+                // @unlink($generatedPage);
             }
         }
 
