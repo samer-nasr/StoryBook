@@ -27,35 +27,70 @@ class StoryController extends Controller
         $tempPhotoPath = $request->file('photo')->storeAs('temp', $photoName, 'local');
         $fullTempPhotoPath = Storage::disk('local')->path($tempPhotoPath);
 
-        $pdfPath = base_path('Design sans titre.pdf');
+        // $pdfPath = base_path('Design sans titre.pdf');
+        $pdfPath = base_path('t1.pdf');
 
-        $prompt = "Edit this storybook page image by REPLACING the main baby/child character with the character from the second reference image.
+        // $prompt = "Edit this storybook page image by REPLACING the main baby/child character with the character from the second reference image.
 
-                    CRITICAL - REPLACEMENT, NOT ADDITION:
-                    - REMOVE the original baby/child character completely from the scene
-                    - Place the new character (from the reference image) in the EXACT same position
-                    - The final image must contain ONLY ONE child character — the new one
-                    - Do NOT keep both the old and new characters — the old one must be gone
-                    - If there are animals, toys, or other non-human characters, KEEP them unchanged
+        //             CRITICAL - REPLACEMENT, NOT ADDITION:
+        //             - REMOVE the original baby/child character completely from the scene
+        //             - Place the new character (from the reference image) in the EXACT same position
+        //             - The final image must contain ONLY ONE child character — the new one
+        //             - Do NOT keep both the old and new characters — the old one must be gone
+        //             - If there are animals, toys, or other non-human characters, KEEP them unchanged
 
-                    CHARACTER IDENTITY:
-                    - The replacement character must match the reference image exactly
-                    - Preserve the exact facial features, hairstyle, and proportions from the reference
-                    - Do NOT redesign or reinterpret the character
+        //             CHARACTER IDENTITY:
+        //             - The replacement character must match the reference image exactly
+        //             - Preserve the exact facial features, hairstyle, and proportions from the reference
+        //             - Do NOT redesign or reinterpret the character
 
-                    SCENE PRESERVATION:
-                    - Keep the background, colors, lighting, and art style identical
-                    - Keep all animals, objects, and decorations unchanged
-                    - Keep the original illustration style exactly the same
-                    - Only the baby/child character should change — nothing else
+        //             SCENE PRESERVATION:
+        //             - Keep the background, colors, lighting, and art style identical
+        //             - Keep all animals, objects, and decorations unchanged
+        //             - Keep the original illustration style exactly the same
+        //             - Only the baby/child character should change — nothing else
 
-                    POSE AND POSITION:
-                    - The new character should adopt the same pose as the original baby character
-                    - Match the same position, angle, and scale in the scene
+        //             POSE AND POSITION:
+        //             - The new character should adopt the same pose as the original baby character
+        //             - Match the same position, angle, and scale in the scene
 
-                    FINAL CHECK:
-                    - Count the human characters: there should be exactly ONE child in the output
-                    - That child must be the one from the reference image, not the original";
+        //             FINAL CHECK:
+        //             - Count the human characters: there should be exactly ONE child in the output
+        //             - That child must be the one from the reference image, not the original";
+
+        $prompt = "Edit this storybook page image by replacing ONLY the face of the main baby/child character with the face from the reference image.
+
+            CRITICAL - FACE REPLACEMENT ONLY:
+            - Replace ONLY the face (eyes, nose, mouth, facial structure)
+            - Do NOT modify the body, clothes, pose, or proportions
+            - Do NOT move or reposition the character
+            - The original body must remain exactly the same
+            - Blend the new face naturally onto the existing head
+
+            CHARACTER IDENTITY:
+            - The new face must match the reference image exactly
+            - Preserve exact facial features: eyes, nose, mouth, face shape
+            - Maintain the same expression as much as possible
+            - Do NOT redesign or stylize differently
+
+            SCENE PRESERVATION:
+            - Keep background, colors, lighting, and art style unchanged
+            - Keep all objects, animals, and elements unchanged
+            - Do NOT modify anything outside the face area
+
+            BLENDING AND INTEGRATION:
+            - Ensure smooth and natural blending between face and head
+            - Match skin tone, lighting, and shadows to the original scene
+            - Avoid visible seams, edges, or mismatched colors
+
+            CONSTRAINTS:
+            - Do NOT alter hair, unless needed for natural blending
+            - Do NOT change head shape or size
+            - Do NOT affect resolution or image quality
+
+            FINAL CHECK:
+            - Only the face should be changed
+            - Everything else must remain identical to the original image";
 
         // Create a StoryGeneration record to track progress
         $story = StoryGeneration::create([

@@ -60,15 +60,22 @@ class StoryGenerationService
         $timestamp = time();
         $finalPdfPath = $outputDirectory . "/story_{$childName}_{$timestamp}.pdf";
 
-        // A4 Portrait dimensions in mm
-        $pageWidth = 210;
-        $pageHeight = 297;
+        // --- A4 Landscape Configuration ---
+        $pageWidth = 297;
+        $pageHeight = 210;
+        $pdf = new \FPDF('L', 'mm', 'A4');
+        $pageOrientation = 'L';
 
-        $pdf = new \FPDF('P', 'mm', 'A4');
+        // --- A4 Portrait Configuration (Commented out for easy switching) ---
+        // $pageWidth = 210;
+        // $pageHeight = 297;
+        // $pdf = new \FPDF('P', 'mm', 'A4');
+        // $pageOrientation = 'P'; 
+
         $pdf->SetAutoPageBreak(false);
 
         foreach ($imagePaths as $imagePath) {
-            $pdf->AddPage('P', 'A4');
+            $pdf->AddPage($pageOrientation, 'A4'); 
 
             // Get image pixel dimensions
             $size = getimagesize($imagePath);
