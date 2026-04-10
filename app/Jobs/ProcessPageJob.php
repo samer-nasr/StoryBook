@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use Illuminate\Bus\Batchable;
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -16,7 +17,7 @@ use Throwable;
 
 class ProcessPageJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, SerializesModels, Batchable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Batchable;
 
     public $timeout = 600; // 10 minutes per page
 

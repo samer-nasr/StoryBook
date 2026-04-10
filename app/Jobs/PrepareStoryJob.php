@@ -96,16 +96,16 @@ class PrepareStoryJob implements ShouldQueue
             $story->update(['total_pages' => $totalPages]);
             Log::info("[Story #{$this->storyId}] Extracted {$totalPages} pages.");
 
-            // 4. Build array of ProcessPageJob instances (one per page)
+            // 4. Build array of ProcessPageJob instances (one per page) with staged delays
             $jobs = [];
             foreach ($pageImages as $index => $pageImagePath) {
-                $jobs[] = new ProcessPageJob(
+                $jobs[] = (new ProcessPageJob(
                     storyId: $this->storyId,
                     pageIndex: $index + 1, // 1-based index
                     pageImagePath: $pageImagePath,
                     characterImagePath: $characterImagePath,
                     prompt: $this->prompt
-                );
+                ))->delay(now()->addSeconds($index * 1)); // 15 seconds delay per page staggered
             }
 
             // 5. Dispatch Bus batch with all page processing jobs
