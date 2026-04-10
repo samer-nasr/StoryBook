@@ -23,6 +23,11 @@ class StoryGeneration extends Model
         'pdf_path',
         'prompt',
         'template_id',
+        'config',
+    ];
+
+    protected $casts = [
+        'config' => 'array',
     ];
 
     public function template()

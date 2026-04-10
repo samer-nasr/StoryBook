@@ -94,7 +94,8 @@ class ProcessPageJob implements ShouldQueue
                 $this->characterImagePath,
                 $this->prompt,
                 $this->storyId,
-                $this->pageIndex
+                $this->pageIndex,
+                $story->config ?? []
             );
 
             Log::info("[Story #{$this->storyId}] Page {$this->pageIndex} processed successfully.");

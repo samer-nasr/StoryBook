@@ -189,6 +189,22 @@ class StoryController extends Controller
             'processed_pages' => 0,
             'pdf_path' => $pdfPath,
             'prompt' => $prompt,
+            'config' => [
+                'version' => 1,
+                'seed' => mt_rand(10000000, 99999999),
+                'system_role' => config('constant.prompts.system_role'),
+                'strict_rules' => config('constant.prompts.strict_rules'),
+                'output_rules' => config('constant.prompts.output_rules'),
+                
+                'style_block' => config('constant.prompts.defaults.style_block'),
+                'identity_block' => config('constant.prompts.defaults.identity_block'),
+                
+                'character_generation_task' => config('constant.prompts.character_generation.task'),
+                'character_generation_constraints' => config('constant.prompts.character_generation.constraints'),
+                
+                'page_generation_task' => config('constant.prompts.page_generation.task'),
+                'page_generation_constraints' => config('constant.prompts.page_generation.constraints'),
+            ]
         ]);
 
         // Dispatch the PrepareStoryJob (which orchestrates the entire parallel pipeline)

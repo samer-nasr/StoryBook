@@ -83,7 +83,8 @@ class PrepareStoryJob implements ShouldQueue
             $characterImagePath = $aiService->generateCharacterImage(
                 $this->photoPath,
                 $this->childName,
-                $this->storyId
+                $this->storyId,
+                $story->config ?? []
             );
             $story->update(['character_image_path' => $characterImagePath]);
             Log::info("[Story #{$this->storyId}] Character image saved to: {$characterImagePath}");
