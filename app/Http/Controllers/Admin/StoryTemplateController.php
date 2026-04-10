@@ -25,7 +25,7 @@ class StoryTemplateController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'pdf' => 'required|mimes:pdf|max:20480',
+            'pdf' => 'required|mimes:pdf|max:102400', // Max 100MB
         ]);
 
         $file = $request->file('pdf');
@@ -50,7 +50,7 @@ class StoryTemplateController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'pdf' => 'nullable|mimes:pdf|max:20480',
+            'pdf' => 'nullable|mimes:pdf|max:102400', // Max 100MB
         ]);
 
         $data = [

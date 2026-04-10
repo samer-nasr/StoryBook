@@ -64,39 +64,121 @@ class StoryController extends Controller
         //             - Count the human characters: there should be exactly ONE child in the output
         //             - That child must be the one from the reference image, not the original";
 
+        // $prompt = "Edit this storybook page image by replacing ONLY the face of the main baby/child character with the face from the reference image.
+
+        //     CRITICAL - FACE REPLACEMENT ONLY:
+        //     - Replace ONLY the face (eyes, nose, mouth, facial structure)
+        //     - Do NOT modify the body, clothes, pose, or proportions
+        //     - Do NOT move or reposition the character
+        //     - The original body must remain exactly the same
+        //     - Blend the new face naturally onto the existing head
+
+        //     CHARACTER IDENTITY:
+        //     - The new face must match the reference image exactly
+        //     - Preserve exact facial features: eyes, nose, mouth, face shape
+        //     - Maintain the same expression as much as possible
+        //     - Do NOT redesign or stylize differently
+
+        //     SCENE PRESERVATION:
+        //     - Keep background, colors, lighting, and art style unchanged
+        //     - Keep all objects, animals, and elements unchanged
+        //     - Do NOT modify anything outside the face area
+
+        //     BLENDING AND INTEGRATION:
+        //     - Ensure smooth and natural blending between face and head
+        //     - Match skin tone, lighting, and shadows to the original scene
+        //     - Avoid visible seams, edges, or mismatched colors
+
+        //     CONSTRAINTS:
+        //     - Do NOT alter hair, unless needed for natural blending
+        //     - Do NOT change head shape or size
+        //     - Do NOT affect resolution or image quality
+
+        //     FINAL CHECK:
+        //     - Only the face should be changed
+        //     - Everything else must remain identical to the original image";
+
+        // $prompt = "Edit this storybook page image by replacing ONLY the face of the main baby/child character with the face from the reference image.
+
+        //         CRITICAL - FACE REPLACEMENT ONLY:
+        //         - Replace ONLY the face (eyes, nose, mouth, facial structure)
+        //         - Do NOT modify the body, clothes, pose, or proportions
+        //         - Do NOT move or reposition the character
+        //         - The original body must remain exactly the same
+        //         - Blend the new face naturally onto the existing head
+
+        //         CHARACTER IDENTITY (STRICT):
+        //         - The new face MUST match the reference image exactly
+        //         - Preserve exact facial features: eyes, nose, mouth, face shape
+        //         - Maintain the same expression as much as possible
+        //         - Do NOT redesign, stylize, or reinterpret the face
+
+        //         EYE COLOR (VERY IMPORTANT - STRICT REQUIREMENT):
+        //         - The eye color MUST EXACTLY match the reference image
+        //         - Extract the exact eye color from the reference and reproduce it identically
+        //         - Do NOT approximate or change the eye color under any circumstance
+        //         - Do NOT blend or average eye color with the original character
+        //         - Eye color must remain consistent, clear, and unchanged after blending
+
+        //         SCENE PRESERVATION:
+        //         - Keep background, colors, lighting, and art style unchanged
+        //         - Keep all objects, animals, and elements unchanged
+        //         - Do NOT modify anything outside the face area
+
+        //         BLENDING AND INTEGRATION:
+        //         - Ensure smooth and natural blending between face and head
+        //         - Match skin tone, lighting, and shadows to the original scene
+        //         - Avoid visible seams, edges, or mismatched colors
+
+        //         CONSTRAINTS:
+        //         - Do NOT alter hair, unless required for natural blending
+        //         - Do NOT change head shape or size
+        //         - Do NOT affect resolution or image quality
+
+        //         FINAL CHECK (STRICT):
+        //         - Only the face should be changed
+        //         - Eye color MUST exactly match the reference image
+        //         - Everything else must remain identical to the original image";
+
         $prompt = "Edit this storybook page image by replacing ONLY the face of the main baby/child character with the face from the reference image.
+                CRITICAL - FACE REPLACEMENT ONLY:
+                -Replace ONLY the face (eyes, nose, mouth, facial structure)
+                -Do NOT modify the body, clothes, pose, or proportions
+                -Do NOT move or reposition the character
+                -The original body must remain exactly the same
+                -Blend the new face naturally onto the existing head
 
-            CRITICAL - FACE REPLACEMENT ONLY:
-            - Replace ONLY the face (eyes, nose, mouth, facial structure)
-            - Do NOT modify the body, clothes, pose, or proportions
-            - Do NOT move or reposition the character
-            - The original body must remain exactly the same
-            - Blend the new face naturally onto the existing head
+                CHARACTER IDENTITY (STRICT):
+                -The new face MUST match the reference image exactly
+                -Preserve exact facial features: eyes, nose, mouth, face shape
+                -Maintain the same expression as much as possible
+                -Do NOT redesign, stylize, or reinterpret the face
 
-            CHARACTER IDENTITY:
-            - The new face must match the reference image exactly
-            - Preserve exact facial features: eyes, nose, mouth, face shape
-            - Maintain the same expression as much as possible
-            - Do NOT redesign or stylize differently
+                EYE COLOR (NON-NEGOTIABLE):
+                -The eye color MUST EXACTLY match the reference image
+                -Extract the precise eye color and reproduce it identically
+                -Do NOT alter, blend, or change the eye color under any circumstance
+                -Eye color must remain clear and consistent
 
-            SCENE PRESERVATION:
-            - Keep background, colors, lighting, and art style unchanged
-            - Keep all objects, animals, and elements unchanged
-            - Do NOT modify anything outside the face area
+                HAIR CONSISTENCY (CRITICAL - MUST ENFORCE):
+                -The hair color and hairstyle MUST EXACTLY match the reference image
+                -Reproduce the exact hair color, style, and texture from the reference
+                -Do NOT change, lighten, or restyle the hair in any way
+                -Hair must appear identical to the reference image
 
-            BLENDING AND INTEGRATION:
-            - Ensure smooth and natural blending between face and head
-            - Match skin tone, lighting, and shadows to the original scene
-            - Avoid visible seams, edges, or mismatched colors
+                SCENE PRESERVATION:
+                -Keep background, colors, lighting, and art style unchanged
+                -Keep all objects, animals, and elements unchanged
+                -Do NOT modify anything outside the face area
 
-            CONSTRAINTS:
-            - Do NOT alter hair, unless needed for natural blending
-            - Do NOT change head shape or size
-            - Do NOT affect resolution or image quality
+                BLENDING AND INTEGRATION:
+                -Ensure smooth and natural blending between face and head
+                -Match skin tone, lighting, and shadows to the original scene
+                -Avoid visible seams, edges, or mismatched colors
 
-            FINAL CHECK:
-            - Only the face should be changed
-            - Everything else must remain identical to the original image";
+                CONSTRAINTS:
+                -Do NOT alter hair or head shape
+                -Do NOT affect resolution or image quality";
 
         // Create a StoryGeneration record to track progress
         $story = StoryGeneration::create([
