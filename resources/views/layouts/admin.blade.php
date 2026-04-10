@@ -17,6 +17,7 @@
                     <div class="ml-8 flex space-x-4">
                         <a href="{{ route('admin.dashboard') }}" class="text-indigo-100 hover:bg-indigo-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">Dashboard</a>
                         <a href="{{ route('templates.index') }}" class="text-indigo-100 hover:bg-indigo-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">Templates</a>
+                        <a href="{{ route('prompt-templates.index') }}" class="text-indigo-100 hover:bg-indigo-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">Prompts</a>
                     </div>
                 </div>
             </div>

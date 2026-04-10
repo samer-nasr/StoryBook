@@ -180,6 +180,9 @@ class StoryController extends Controller
                 -Do NOT alter hair or head shape
                 -Do NOT affect resolution or image quality";
 
+        $prompts = app(\App\Services\PromptService::class)->getActivePrompts();
+        $globalPrompt = $prompts->get('global');
+
         // Create a StoryGeneration record to track progress
         $story = StoryGeneration::create([
             'template_id' => $template->id,
@@ -190,20 +193,10 @@ class StoryController extends Controller
             'pdf_path' => $pdfPath,
             'prompt' => $prompt,
             'config' => [
-                'version' => 1,
+                'version' => $globalPrompt?->version ?? 1,
                 'seed' => mt_rand(10000000, 99999999),
-                'system_role' => config('constant.prompts.system_role'),
-                'strict_rules' => config('constant.prompts.strict_rules'),
-                'output_rules' => config('constant.prompts.output_rules'),
-                
-                'style_block' => config('constant.prompts.defaults.style_block'),
-                'identity_block' => config('constant.prompts.defaults.identity_block'),
-                
-                'character_generation_task' => config('constant.prompts.character_generation.task'),
-                'character_generation_constraints' => config('constant.prompts.character_generation.constraints'),
-                
-                'page_generation_task' => config('constant.prompts.page_generation.task'),
-                'page_generation_constraints' => config('constant.prompts.page_generation.constraints'),
+                'style_block' => $globalPrompt?->style_block ?? '',
+                'identity_block' => $globalPrompt?->identity_block ?? '',
             ]
         ]);
 

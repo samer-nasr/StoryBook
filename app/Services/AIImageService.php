@@ -8,38 +8,8 @@ use Illuminate\Support\Facades\Log;
 
 class AIImageService
 {
-    private function buildStructuredPrompt(array $config): string
+    public function __construct(protected \App\Services\PromptService $promptService)
     {
-        $systemRole = $config['system_role'] ?? config('constant.prompts.system_role');
-        $strictRules = $config['strict_rules'] ?? config('constant.prompts.strict_rules');
-        $identityBlock = $config['identity_block'] ?? '';
-        $styleBlock = $config['style_block'] ?? '';
-        $task = $config['task'] ?? '';
-        $constraints = $config['constraints'] ?? '';
-        $outputRules = $config['output_rules'] ?? config('constant.prompts.output_rules');
-
-        return <<<PROMPT
-[SYSTEM ROLE]
-{$systemRole}
-
-[STRICT RULES]
-{$strictRules}
-
-[IDENTITY BLOCK]
-{$identityBlock}
-
-[STYLE BLOCK]
-{$styleBlock}
-
-[TASK]
-{$task}
-
-[CONSTRAINTS]
-{$constraints}
-
-[OUTPUT RULES]
-{$outputRules}
-PROMPT;
     }
 
     /**
@@ -52,13 +22,10 @@ PROMPT;
      */
     public function generateCharacterImage(string $photoPath, string $childName, int $storyId, array $config = []): string
     {
-        $config['task'] = $config['character_generation_task'] ?? config('constant.prompts.character_generation.task');
-        $config['constraints'] = $config['character_generation_constraints'] ?? config('constant.prompts.character_generation.constraints');
-
-        $prompt = $this->buildStructuredPrompt($config);
+        $prompt = $this->promptService->getPrompt('character_generation', $config);
 
         Log::info("[Story #{$storyId}] Calling AI to generate character image for {$childName}... (Seed: " . ($config['seed'] ?? 'none') . ")");
-        Log::info("Character Generation Prompt:\n{$prompt}");
+        // Log::info("Character Generation Prompt:\n{$prompt}");
 
         // Note: seed parameter mapping for SDK overrides
         $imageParams = [
@@ -103,12 +70,9 @@ PROMPT;
     {
         Log::info("[Story #{$storyId}] Calling AI to process page {$pageIndex}... (Seed: " . ($config['seed'] ?? 'none') . ")");
 
-        $config['task'] = $config['page_generation_task'] ?? config('constant.prompts.page_generation.task');
-        $config['constraints'] = $config['page_generation_constraints'] ?? config('constant.prompts.page_generation.constraints');
+        $structuredPrompt = $this->promptService->getPrompt('page_generation', $config);
 
-        $structuredPrompt = $this->buildStructuredPrompt($config);
-
-        Log::info("Page Generation Prompt for page {$pageIndex}:\n{$structuredPrompt}");
+        // Log::info("Page Generation Prompt for page {$pageIndex}:\n{$structuredPrompt}");
 
         $imageParams = [
             'prompt' => $structuredPrompt, 
