@@ -27,7 +27,6 @@ class AIImageService
         Log::info("[Story #{$storyId}] Calling AI to generate character image for {$childName}... (Seed: " . ($config['seed'] ?? 'none') . ")");
         // Log::info("Character Generation Prompt:\n{$prompt}");
 
-        // Note: seed parameter mapping for SDK overrides
         $imageParams = [
             'prompt' => $prompt, 
             'attachments' => [new LocalImage($photoPath)],
@@ -98,6 +97,43 @@ class AIImageService
         file_put_contents($savePath, $generatedImage->content());
 
         Log::info("[Story #{$storyId}] Processed page {$pageIndex} saved to: {$savePath}");
+
+        return $savePath;
+    }
+
+    /**
+     * Executes the identical AI replacement logic natively grouping 4 pages bound directly into a single 1024x1024 grid
+     */
+    public function replaceCharacterInGrid(string $gridImagePath, string $characterImagePath, int $storyId, int $gridIndex, array $config = []): string
+    {
+        Log::info("[Story #{$storyId}] Calling AI to process GRID {$gridIndex} (Cost Batching)... (Seed: " . ($config['seed'] ?? 'none') . ")");
+
+        // Use the full static grid prompt from constants — no dynamic interpolation
+        $gridPrompt = \App\Constants\Prompts::GRID_FACE_REPLACEMENT;
+
+        $imageParams = [
+            'prompt' => $gridPrompt, 
+            'attachments' => [
+                new LocalImage($gridImagePath),
+                new LocalImage($characterImagePath)
+            ],
+            'timeout' => 300
+        ];
+
+        $response = Ai::image(...$imageParams);
+        $generatedImage = $response->firstImage();
+
+        $outputDirectory = storage_path('app/generated_pages');
+        if (!file_exists($outputDirectory)) {
+            mkdir($outputDirectory, 0755, true);
+        }
+
+        $filename = "story_{$storyId}_grid_{$gridIndex}_edited.png";
+        $savePath = $outputDirectory . '/' . $filename;
+
+        file_put_contents($savePath, $generatedImage->content());
+
+        Log::info("[Story #{$storyId}] Processed GRID {$gridIndex} saved securely to: {$savePath}");
 
         return $savePath;
     }

@@ -37,18 +37,20 @@ class ProcessPageJob implements ShouldQueue
     public $backoff = [30, 60, 120, 240];
 
     protected int $storyId;
-    protected int $pageIndex;
+    protected int $pageIndex; // Represents the Grid Index computationally
     protected string $pageImagePath;
     protected string $characterImagePath;
     protected string $prompt;
+    protected array $pageIndices;
 
-    public function __construct(int $storyId, int $pageIndex, string $pageImagePath, string $characterImagePath, string $prompt)
+    public function __construct(int $storyId, int $pageIndex, string $pageImagePath, string $characterImagePath, string $prompt, array $pageIndices = [])
     {
         $this->storyId = $storyId;
         $this->pageIndex = $pageIndex;
         $this->pageImagePath = $pageImagePath;
         $this->characterImagePath = $characterImagePath;
         $this->prompt = $prompt;
+        $this->pageIndices = $pageIndices;
     }
 
     public function middleware(): array
@@ -58,48 +60,46 @@ class ProcessPageJob implements ShouldQueue
         ];
     }
 
-    public function handle(AIImageService $aiService): void
+    public function handle(AIImageService $aiService, \App\Services\StoryGenerationService $storyService): void
     {
         // GUARD 1: Stop if the story is already finalized/completed/failed
         $story = StoryGeneration::find($this->storyId);
         if (!$story || in_array($story->status, ['finalizing', 'completed', 'completed_partial', 'failed'])) {
-            Log::info("[Story #{$this->storyId}] Story already {$story?->status}. Skipping page {$this->pageIndex}.");
+            Log::info("[Story #{$this->storyId}] Story already {$story?->status}. Skipping grid {$this->pageIndex}.");
             return;
         }
 
         // GUARD 2: Skip if batch cancelled
         if ($this->batch() && $this->batch()->cancelled()) {
-            Log::info("[Story #{$this->storyId}] Batch cancelled. Skipping page {$this->pageIndex}.");
+            Log::info("[Story #{$this->storyId}] Batch cancelled. Skipping grid {$this->pageIndex}.");
             return;
         }
 
-        // GUARD 3: Skip if this page already exists (prevents duplicate API calls)
-        $outputPath = storage_path("app/generated_pages/story_{$this->storyId}_page_{$this->pageIndex}.png");
-        if (file_exists($outputPath)) {
-            Log::info("[Story #{$this->storyId}] Page {$this->pageIndex} already exists. Skipping.");
-            $this->checkAndTriggerFinalization();
-            return;
-        }
-
-        // GUARD 4: Check source files exist
+        // GUARD 3: Check source files exist
         if (!file_exists($this->pageImagePath) || !file_exists($this->characterImagePath)) {
-            Log::warning("[Story #{$this->storyId}] Source files missing for page {$this->pageIndex}. Skipping.");
+            Log::warning("[Story #{$this->storyId}] Source files missing for grid {$this->pageIndex}. Skipping.");
             return;
         }
 
         try {
-            Log::info("[Story #{$this->storyId}] ProcessPageJob started for page {$this->pageIndex} (attempt {$this->attempts()}).");
+            Log::info("[Story #{$this->storyId}] ProcessPageJob started for grid {$this->pageIndex} (attempt {$this->attempts()}).");
 
-            $aiService->replaceCharacterInPage(
+            // Process the composite 1024x1024 grid
+            $editedGridPath = $aiService->replaceCharacterInGrid(
                 $this->pageImagePath,
                 $this->characterImagePath,
-                $this->prompt,
                 $this->storyId,
-                $this->pageIndex,
+                $this->pageIndex, // Which acts as Grid Index here
                 $story->config ?? []
             );
 
-            Log::info("[Story #{$this->storyId}] Page {$this->pageIndex} processed successfully.");
+            Log::info("[Story #{$this->storyId}] Grid {$this->pageIndex} processed successfully. Splitting chunks natively...");
+
+            // Directly run the chunk-splitter logic parsing the 1024 grid back into native 512 images mathematically tracking original page indices
+            $storyService->splitGrid($editedGridPath, $this->storyId, $this->pageIndices);
+
+            // Clean up the 1024x1024 grid since chunks are safe via automated file bounds mapping
+            // @unlink($editedGridPath);
 
             // Check if all pages are done by counting actual files
             $this->checkAndTriggerFinalization();

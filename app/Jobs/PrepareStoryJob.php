@@ -96,16 +96,22 @@ class PrepareStoryJob implements ShouldQueue
             $story->update(['total_pages' => $totalPages]);
             Log::info("[Story #{$this->storyId}] Extracted {$totalPages} pages.");
 
-            // 4. Build array of ProcessPageJob instances (one per page) with staged delays
+            // 4. Build array of ProcessPageJob instances (one per grid sheet mapped to 4 inner pages)
+            $grids = $storyService->createGrids($this->storyId, $pageImages);
             $jobs = [];
-            foreach ($pageImages as $index => $pageImagePath) {
+            $gridIndex = 1;
+            
+            foreach ($grids as $gridImagePath => $pageIndices) {
+                // Determine staggered delays dynamically off grid indices to protect network throughput natively
                 $jobs[] = (new ProcessPageJob(
                     storyId: $this->storyId,
-                    pageIndex: $index + 1, // 1-based index
-                    pageImagePath: $pageImagePath,
+                    pageIndex: $gridIndex, // This is now practically a grid Index reference logging wise
+                    pageImagePath: $gridImagePath,
                     characterImagePath: $characterImagePath,
-                    prompt: $this->prompt
-                ))->delay(now()->addSeconds($index * 1)); // 15 seconds delay per page staggered
+                    prompt: $this->prompt,
+                    pageIndices: $pageIndices
+                ))->delay(now()->addSeconds($gridIndex * 15)); // Delay slightly higher per GRID boundary given network constraints (4 pages processed per chunk)
+                $gridIndex++;
             }
 
             // 5. Dispatch Bus batch with all page processing jobs

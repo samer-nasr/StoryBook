@@ -77,31 +77,9 @@ class StoryGenerationService
         foreach ($imagePaths as $imagePath) {
             $pdf->AddPage($pageOrientation, 'A4'); 
 
-            // Get image pixel dimensions
-            $size = getimagesize($imagePath);
-            $imgW = $size[0];
-            $imgH = $size[1];
-
-            // Calculate aspect ratios
-            $imgRatio = $imgW / $imgH;
-            $pageRatio = $pageWidth / $pageHeight;
-
-            // COVER: scale so the image completely fills the page without white borders
-            if ($imgRatio > $pageRatio) {
-                // Image is wider than page ratio → scale by height to fill the page, excess width gets cropped
-                $finalH = $pageHeight;
-                $finalW = $pageHeight * $imgRatio;
-            } else {
-                // Image is taller than page ratio → scale by width to fill the page, excess height gets cropped
-                $finalW = $pageWidth;
-                $finalH = $pageWidth / $imgRatio;
-            }
-
-            // Center the image on the page
-            $x = ($pageWidth - $finalW) / 2;
-            $y = ($pageHeight - $finalH) / 2;
-
-            $pdf->Image($imagePath, $x, $y, $finalW, $finalH);
+            // Images are now pre-padded to A4 landscape ratio in splitGrid()
+            // Just place them to fill the page exactly
+            $pdf->Image($imagePath, 0, 0, $pageWidth, $pageHeight);
         }
 
         $pdf->Output('F', $finalPdfPath);
@@ -162,5 +140,119 @@ class StoryGenerationService
         }
 
         Log::info("[Story #{$storyId}] Cleaned up temporary page files.");
+    }
+
+    /**
+     * Stitches extracted 512x512 pages into 1024x1024 grid payloads to drastically cut API compute requirements.
+     */
+    public function createGrids(int $storyId, array $pageImages): array
+    {
+        $grids = [];
+        $chunks = array_chunk($pageImages, 4, true); // Chunks of 4 pages
+        $outputDirectory = storage_path('app/pdf_pages');
+        $gridIndex = 1;
+
+        // A4 native panel size (Portrait scaled to width 512)
+        // Ratio 297/210 = 1.414. Height = 512 / 1.414 = 362.
+        $panelW = 512;
+        $panelH = 362;
+
+        foreach ($chunks as $chunk) {
+            $gridCanvas = new \Imagick();
+            $gridCanvas->newImage(1024, 1024, new \ImagickPixel('white')); // Standard OpenAI size
+            $gridCanvas->setImageFormat('png');
+
+            // Vertically center the 1024x724 content block (1024 - (362*2)) / 2 = 150
+            $vOffset = 150;
+
+            $positions = [
+                ['x' => 0, 'y' => $vOffset],                // Top-Left
+                ['x' => 512, 'y' => $vOffset],              // Top-Right
+                ['x' => 0, 'y' => $vOffset + $panelH],      // Bottom-Left
+                ['x' => 512, 'y' => $vOffset + $panelH],    // Bottom-Right
+            ];
+
+            $pageIndices = [];
+            $posId = 0;
+            foreach ($chunk as $originalIndex => $pageImagePath) {
+                // Determine 1-based index based on position in source array
+                $realPageIndex = $originalIndex + 1;
+                $pageIndices[] = $realPageIndex;
+
+                $page = new \Imagick($pageImagePath);
+
+                // Resize proportionally to A4-native panel size (512x362)
+                $page->resizeImage($panelW, $panelH, \Imagick::FILTER_LANCZOS, 1);
+
+                // Drop the panel directly into its coordinate on the master canvas
+                $gridCanvas->compositeImage($page, \Imagick::COMPOSITE_OVER, $positions[$posId]['x'], $positions[$posId]['y']);
+                
+                $page->clear();
+                $posId++;
+            }
+
+            $gridCanvas->setImageFormat('png');
+
+            $gridFileName = $outputDirectory . "/story_{$storyId}_grid_{$gridIndex}.png";
+            $gridCanvas->writeImage($gridFileName);
+            $gridCanvas->clear();
+
+            $grids[$gridFileName] = $pageIndices;
+            $gridIndex++;
+        }
+
+        return $grids;
+    }
+
+    /**
+     * Splits a generated 1024x1024 grid back into the standard individual 512x512 generated page arrays natively.
+     */
+    public function splitGrid(string $editedGridPath, int $storyId, array $pageIndices): void
+    {
+        $outputDirectory = storage_path('app/generated_pages');
+        if (!file_exists($outputDirectory)) {
+            mkdir($outputDirectory, 0755, true);
+        }
+
+        $grid = new \Imagick($editedGridPath);
+        
+        // Final A4 Landscape dimensions (300 DPI)
+        $a4Width = 3508;
+        $a4Height = 2480;
+
+        // A4 native panel size in the 1024x1024 grid
+        $panelW = 512;
+        $panelH = 362;
+        $vOffset = 150;
+
+        $positions = [
+            ['x' => 0, 'y' => $vOffset],
+            ['x' => 512, 'y' => $vOffset],
+            ['x' => 0, 'y' => $vOffset + $panelH],
+            ['x' => 512, 'y' => $vOffset + $panelH],
+        ];
+
+        foreach ($pageIndices as $iterator => $actualPageIndex) {
+            $splitPiece = clone $grid;
+            
+            // 3. Extract the A4-native panel slice (512x362)
+            $splitPiece->cropImage($panelW, $panelH, $positions[$iterator]['x'], $positions[$iterator]['y']);
+            $splitPiece->setImagePage($panelW, $panelH, 0, 0);
+            
+            // 4. Directly upscale to full-bleed A4 Landscape (3508x2480)
+            $splitPiece->resizeImage($a4Width, $a4Height, \Imagick::FILTER_LANCZOS, 1);
+            
+            // 5. Set 300 DPI resolution
+            $splitPiece->setImageResolution(300, 300);
+            $splitPiece->setImageUnits(\Imagick::RESOLUTION_PIXELSPERINCH);
+            
+            $savePath = $outputDirectory . "/story_{$storyId}_page_{$actualPageIndex}.png";
+            
+            $splitPiece->writeImage($savePath);
+            
+            $splitPiece->clear();
+        }
+
+        $grid->clear();
     }
 }

@@ -43,11 +43,17 @@ Route::get('/test-prompts', function (\App\Services\PromptService $promptService
     $charPrompt = $promptService->getPrompt('character_generation', $config);
     $pagePrompt = $promptService->getPrompt('page_generation', $config);
 
+    // Pull the exact prompt that AIImageService sends to OpenAI — straight from the constant
+    $gridPrompt = \App\Constants\Prompts::GRID_FACE_REPLACEMENT;
+
     echo "<h1>Character Generation Prompt</h1>";
     echo "<pre style='background:#f4f4f4; padding:15px; border:1px solid #ccc; font-family:monospace; white-space:pre-wrap;'>" . htmlspecialchars($charPrompt) . "</pre>";
 
-    echo "<h1>Page Generation Prompt</h1>";
+    echo "<h1>Page Generation Prompt (single-page, legacy)</h1>";
     echo "<pre style='background:#f4f4f4; padding:15px; border:1px solid #ccc; font-family:monospace; white-space:pre-wrap;'>" . htmlspecialchars($pagePrompt) . "</pre>";
+
+    echo "<h1 style='color:#c00;'>Grid Replace Prompt (ACTIVE — sent to OpenAI for every grid)</h1>";
+    echo "<pre style='background:#fff8e1; padding:15px; border:2px solid #f9a825; font-family:monospace; white-space:pre-wrap;'>" . htmlspecialchars($gridPrompt) . "</pre>";
 });
 
 // Admin Routes
